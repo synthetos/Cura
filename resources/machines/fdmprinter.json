@@ -876,9 +876,9 @@
                             "inherit_function": "speed_print",
                             "enabled": "support_enable",
                             "children": {
-                                "speed_support_lines": {
-                                    "label": "Support Wall Speed",
-                                    "description": "The speed at which the walls of support are printed. Printing the walls at lower speeds improves stability.",
+                                "speed_support_infill": {
+                                    "label": "Support Infill Speed",
+                                    "description": "The speed at which the infill of support is printed. Printing the infill at lower speeds improves stability.",
                                     "unit": "mm/s",
                                     "type": "float",
                                     "default": 60,
