@@ -3,6 +3,7 @@ version = 1
 name = Fast Print
 machine_type = ultimaker2_olsson
 machine_variant = 0.4 mm
+material = PLA
 weight = -1
 
 [settings]
@@ -12,11 +13,11 @@ layer_height_0 = 0.26
 shell_thickness = 0.7
 top_bottom_thickness = 0.6
 infill_sparse_density = 18
-infill_overlap = 0.035
 retraction_amount = 5.5
-retraction_extrusion_window = 6
-speed_wall_0 = 40
+speed_print = 40
+speed_infill = 60
 speed_wall_x = 50
 speed_travel = 150
+speed_topbottom = 30
 speed_layer_0 = 25
 cool_min_layer_time_fan_speed_max = 15
