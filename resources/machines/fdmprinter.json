@@ -433,6 +433,17 @@
                     "default": "lines",
                     "visible": false
                 },
+                "wall_0_inset": {
+                    "label": "Outer Wall Inset",
+                    "description": "Inset applied to the path of the outer wall. If the outer wall is smaller than the nozzle, and printed after the inner walls, use this offset to get the hole in the nozzle to overlap with the inner walls instead of the outside of the object.",
+                    "unit": "mm",
+                    "type": "float",
+                    "default": 0.0,
+                    "inherit_function": "(machine_nozzle_size - wall_line_width_0) / 2 if wall_line_width_0 < machine_nozzle_size else 0",
+                    "min_value_warning": "0",
+                    "max_value_warning": "machine_nozzle_size",
+                    "visible": false
+                },
                 "alternate_extra_perimeter": {
                     "label": "Alternate Extra Wall",
                     "description": "Prints an extra wall at every other layer. This way infill gets caught between these extra walls, resulting in stronger prints.",
