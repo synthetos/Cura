@@ -236,7 +236,7 @@ Item
             anchors.verticalCenter: supportCheckBox.verticalCenter
             width: parent.width/100*35 - 3 * UM.Theme.getSize("default_margin").width
             //: Support label
-            text: catalog.i18nc("@label:listbox","Support Structure:");
+            text: catalog.i18nc("@label:listbox","Support:");
             font: UM.Theme.getFont("default");
             color: UM.Theme.getColor("text");
         }
@@ -252,7 +252,7 @@ Item
             anchors.leftMargin: UM.Theme.getSize("default_margin").width
 
             //: Setting enable support checkbox
-            text: catalog.i18nc("@option:check","Generate Support Structure");
+            text: catalog.i18nc("@option:check","Print Support Structure");
             style: UM.Theme.styles.checkbox;
 
             checked: supportEnabled.properties.value == "True"
