@@ -89,6 +89,8 @@ class ExtrudersModel(UM.Qt.ListModel.ListModel):
                 active_extruder_stack.containersChanged.connect(self._onExtruderStackContainersChanged)
             self._active_extruder_stack = active_extruder_stack
 
+            self._updateExtruders()
+
 
     def _onExtruderStackContainersChanged(self, container):
         # The ExtrudersModel needs to be updated when the material-name or -color changes, because the user identifies extruders by material-name
@@ -121,7 +123,8 @@ class ExtrudersModel(UM.Qt.ListModel.ListModel):
                 self.appendItem(item)
                 changed = True
 
-            machine_extruders = [extruder for extruder in ExtruderManager.getInstance().getMachineExtruders(global_container_stack.getId())]
+            manager = ExtruderManager.getInstance()
+            machine_extruders = [extruder for extruder in manager.getMachineExtruders(global_container_stack.getId())]
             for extruder in machine_extruders:
                 extruder_name = extruder.getName()
                 material = extruder.findContainer({ "type": "material" })
@@ -134,11 +137,15 @@ class ExtrudersModel(UM.Qt.ListModel.ListModel):
                     position = -1
                 default_color = self.defaultColors[position] if position >= 0 and position < len(self.defaultColors) else self.defaultColors[0]
                 color = material.getMetaDataEntry("color_code", default = default_color) if material else default_color
-                shade = self.shadeAmount * position / (len(machine_extruders) - 1) if len(machine_extruders) > 1 else 0
+                if position != manager.activeExtruderIndex:
+                    shade = self.shadeAmount
+                else:
+                    shade = 0
                 item = { #Construct an item with only the relevant information.
                     "id": extruder.getId(),
                     "name": extruder_name,
-                    "color": self._colorShade(color, shade),                    "index": position
+                    "color": self._colorShade(color, shade),
+                    "index": position
                 }
                 self.appendItem(item)
                 changed = True
@@ -156,7 +163,8 @@ class ExtrudersModel(UM.Qt.ListModel.ListModel):
         color_shade = base_color
         if shade > 0:
             new_color = UM.Math.Color.Color.fromHexString(base_color)
-            if (new_color.r + new_color.g + new_color.b) / 3 < .5:                mix = 1 # lighten the shade
+            if (new_color.r + new_color.g + new_color.b) / 3 < .2:
+                mix = 1 # lighten the shade
             else:
                 mix = 0 # darken the shade
             new_color.setValues(
