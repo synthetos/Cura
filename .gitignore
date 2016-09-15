@@ -33,3 +33,5 @@ plugins/GodMode
 plugins/PostProcessingPlugin
 plugins/X3GWriter
 
+#OS X display preferences files
+.DS_Store
