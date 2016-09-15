@@ -36,7 +36,7 @@
         "material_print_temp_prepend": { "default_value": false },
 
         "machine_start_gcode": {
-            "default_value": "G21       ;metric values\nG90       ;absolute positioningM100 ({he1st:{print_temperature}})\nM100 ({out4:0})\n;reset offsets\nG92.1 X0 Y0 Z0 A0 B0\n;home\nG28.2 X0 Y0\nG28.2 Z0\n;z-level z bed\nG0 Z6\nG38.2 Z-10 F200\nG0 Z5\nG0 X195 Y75 ; don't go too far or the probe won't see the bed\nG38.2 Z-10 F200\nG0 Z5\nG0 X5 Y5\nG38.2 Z-10 F200\nG0 Z5\nM100 ({tram:1})\n;reset E\nG92 E0\n;goto Z5 and then put in the offset\nG0 Z5\nG55 ; apply offsets\n;Wait for temp\nM101 ({he1at:t}) ; wait\nG0 X0 Y0 Z0.3 E1 ; and go to 0,0 and string out extra\nG92 E0\n; Layer 0\nG0 Z0.5\nG1 X3.000 Y3; rapid\n; bead-prime\nG1 X215.000 E19 F1200\nG0 Z0.3\n;reset E\nG92 E0"
+            "default_value": "G21       ;metric values\nG90       ;absolute positioning\nM100 ({he1st:{print_temperature}})\nM100 ({out4:0})\n;reset offsets\nG92.1 X0 Y0 Z0 A0 B0\n;home\nG28.2 X0 Y0\nG28.2 Z0\n;z-level z bed\nG0 Z6\nG38.2 Z-10 F200\nG0 Z5\nG0 X195 Y75 ; don't go too far or the probe won't see the bed\nG38.2 Z-10 F200\nG0 Z5\nG0 X5 Y5\nG38.2 Z-10 F200\nG0 Z5\nM100 ({tram:1})\n;reset E\nG92 E0\n;goto Z5 and then put in the offset\nG0 Z5\nG55 ; apply offsets\n;Wait for temp\nM101 ({he1at:t}) ; wait\nG0 X0 Y0 Z0.3 E1 ; and go to 0,0 and string out extra\nG92 E0\n; Layer 0\nG0 Z0.5\nG1 X3.000 Y3; rapid\n; bead-prime\nG1 X215.000 E19 F1200\nG0 Z0.3\n;reset E\nG92 E0"
         },
         "machine_end_gcode": {
             "default_value": ";End GCode\nG91              ; relative positioning\nG0 A-4.5\nG90              ; absolute positioning\nG28.2 X0 Y0\nM100 ({he1st:0}) ; extruder heater off\nM100 ({out4:0})  ; fan off\n"
