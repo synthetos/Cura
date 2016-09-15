@@ -228,7 +228,7 @@ Cura.MachineAction
                                     if(flavorModel.get(i).value == currentValue) {
                                         index = i;
                                         break;
-                                    }
+                                }
                                 }
                                 return index
                             }
