@@ -8,16 +8,17 @@
         "author": "giseburt",
         "manufacturer": "PrintrBot",
         "category": "Other",
-        "platform": "printrbot_simple_metal_platform.stl",
+        "platform": "printrbot_simple_1608_platform.obj",
+        "platform_offset": [0, 0, 0],
         "file_formats": "text/x-gcode"
     },
 
     "overrides": {
         "machine_name": { "default_value": "Printrbot Simple" },
         "machine_heated_bed": { "default_value": false },
-        "machine_width": { "default_value": 200 },
-        "machine_height": { "default_value": 200 },
-        "machine_depth": { "default_value": 150 },
+        "machine_width": { "default_value": 215 },
+        "machine_height": { "default_value": 215 },
+        "machine_depth": { "default_value": 152.4 },
         "machine_center_is_zero": { "default_value": false },
         "machine_nozzle_size": { "default_value": 0.3 },
         "material_diameter": { "default_value": 1.75 },
