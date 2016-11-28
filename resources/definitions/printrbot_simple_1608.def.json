@@ -41,6 +41,21 @@
         },
         "machine_end_gcode": {
             "default_value": ";End GCode\nG91              ; relative positioning\nG0 A-4.5\nG90              ; absolute positioning\nG28.2 X0 Y0\nM100 ({he1st:0}) ; extruder heater off\nM100 ({out4:0})  ; fan off\n"
+        },
+        "machine_max_feedrate_x": {
+            "default_value": 300
+        },
+        "machine_max_feedrate_y": {
+            "default_value": 300
+        },
+        "machine_max_feedrate_z": {
+            "default_value": 40
+        },
+        "machine_max_feedrate_e": {
+            "default_value": 45
+        },
+        "machine_acceleration": {
+            "default_value": 3000
         }
     }
 }
