@@ -228,7 +228,7 @@ Cura.MachineAction
                                     if(flavorModel.get(i).value == currentValue) {
                                         index = i;
                                         break;
-                                }
+                                    }
                                 }
                                 return index
                             }
@@ -572,5 +572,4 @@ Cura.MachineAction
         watchedProperties: [ "value" ]
         storeIndex: manager.containerIndex
     }
-
 }
