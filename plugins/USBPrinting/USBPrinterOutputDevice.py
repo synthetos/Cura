@@ -652,7 +652,7 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
             except:
                 pass # TODO: handle json parser errors
 
-            if "sr" in resonse:
+            if "sr" in response:
                 sr = response.sr
                 if "he1st" in sr:
                     self._setHotendTemperature(1, sr.he1st)
