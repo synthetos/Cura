@@ -280,7 +280,7 @@
                         "BFB": "Bits from Bytes",
                         "MACH3": "Mach3",
                         "Repetier": "Repetier",
-                        "G2Core (Prerelease)": "G2CorePre"
+                        "G2CorePre": "G2Core (Prerelease)"
                     },
                     "default_value": "RepRap (Marlin/Sprinter)",
                     "settable_per_mesh": false,
