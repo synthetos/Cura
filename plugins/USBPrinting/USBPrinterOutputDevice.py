@@ -693,7 +693,7 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
                         # TODO: Handle mapping of output to axis
                         self._setEndstopState("z_min", sr['out5'])
 
-                    if "line" in sr:
+                    if "line" in sr and sr['line'] > 0:
                         self.setProgress((sr['line'] / len(self._gcode)) * 100)
 
                     if "posz" in sr:
