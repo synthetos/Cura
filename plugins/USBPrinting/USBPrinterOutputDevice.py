@@ -3,7 +3,7 @@
 
 from .avr_isp import stk500v2, ispBase, intelHex
 import serial
-from serial.tools import list_ports
+# from serial.tools import list_ports
 import threading
 import time
 import queue
@@ -50,11 +50,15 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
 
         self._device_type = USBPrinterOutputDeviceType.Marlin
 
-        for port in list(list_ports.comports()):
-            if port.device == self._serial_port:
-                if port.vid == 0x1d50 and port.pid == 0x606d:
-                    self._device_type = USBPrinterOutputDeviceType.G2Core
-                    break
+        # TODO: Since pyserial being used is 2.7, we don't have list_ports yet
+        # for port in list(list_ports.comports()):
+        #     if port.device == self._serial_port:
+        #         if port.vid == 0x1d50 and port.pid == 0x606d:
+        #             self._device_type = USBPrinterOutputDeviceType.G2Core
+        #             break
+
+        # TODO: So we hardwire that it's a g2 core machine, for now
+        self._device_type = USBPrinterOutputDeviceType.G2Core
 
         # The baud checking is done by sending a number of m105 commands to the printer and waiting for a readable
         # response. If the baudrate is correct, this should make sense, else we get giberish.
