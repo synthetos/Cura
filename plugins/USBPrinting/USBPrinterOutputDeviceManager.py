@@ -229,9 +229,9 @@ class USBPrinterOutputDeviceManager(QObject, OutputDevicePlugin, Extension):
     def addOutputDevice(self, serial_port):
         device = USBPrinterOutputDevice.USBPrinterOutputDevice(serial_port)
         device.connectionStateChanged.connect(self._onConnectionStateChanged)
-        if not _connecting_to_a_g2:
+        if not self._connecting_to_a_g2:
             device.connect()
-            _connecting_to_a_g2 = True
+            self._connecting_to_a_g2 = True
         device.progressChanged.connect(self.progressChanged)
         device.firmwareUpdateChange.connect(self.firmwareUpdateChange)
         self._usb_output_devices[serial_port] = device
