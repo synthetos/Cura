@@ -397,10 +397,10 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
                 self._serial = serial.Serial(str(self._serial_port), 115200, rtscts = True, timeout = 3, writeTimeout = 10000)
             except serial.SerialException:
                 Logger.log("d", "Could not open port %s" % self._serial_port)
-                continue
+                return
         else:
             if not self.setBaudRate(115200):
-                continue  # Could not set the baud rate, go to the next
+                return  # Could not set the baud rate, go to the next
 
         self._sendG2Command({"sr":None})  # Request a status report
 
