@@ -647,6 +647,8 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
             # if not self.hasError():
             #     self._setErrorState(line[6:])
 
+            response = None
+
             try:
                 response = json.loads(line)
             except:
