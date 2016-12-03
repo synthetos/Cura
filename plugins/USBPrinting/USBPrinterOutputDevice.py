@@ -647,12 +647,14 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
             # if not self.hasError():
             #     self._setErrorState(line[6:])
 
+            Logger.log("i", "Line from printer: %s" % line)
+
             response = None
 
             try:
                 response = json.loads(line)
             except:
-                pass # TODO: handle json parser errors
+                pass  # TODO: handle json parser errors
 
             if "sr" in response:
                 sr = response.sr
@@ -667,7 +669,7 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
 
                 if "out1" in sr:
                     # TODO: Handle mapping of output to axis
-                    self._setEndstopState("y_min", sr.out1) # actually y_max
+                    self._setEndstopState("y_min", sr.out1)  # actually y_max
                 if "out4" in sr:
                     # TODO: Handle mapping of output to axis
                     self._setEndstopState("x_min", sr.out4)
