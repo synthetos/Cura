@@ -671,15 +671,15 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
                     sr = response['sr']
 
                 if sr != None:
-                    if "he1st" in sr:
+                    if "he1t" in sr:
                         Logger.log("i", "Was a extruder 1 termperature update")
-                        self._setHotendTemperature(0, sr['he1st'])
-                    if "he2st" in sr:
+                        self._setHotendTemperature(0, sr['he1t'])
+                    if "he2t" in sr:
                         Logger.log("i", "Was a extruder 2 termperature update")
-                        self._setHotendTemperature(1, sr['he2st'])
-                    if "he2st" in sr:
+                        self._setHotendTemperature(1, sr['he2t'])
+                    if "he2t" in sr:
                         Logger.log("i", "Was a heat bed termperature update")
-                        self._setBedTemperature(sr['he3st'])
+                        self._setBedTemperature(sr['he3t'])
 
                     # TODO: temperature changed callback
 
