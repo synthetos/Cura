@@ -656,48 +656,49 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
 
                 sr = None
 
-                if "sr" in response:
-                    sr = response.sr
-                elif "r" in response:
-                    if "sr" in response.r:
-                        sr = response.r.sr
-
-                if sr != None:
-                    if "he1st" in sr:
-                        Logger.log("i", "Was a extruder 1 termperature update")
-                        self._setHotendTemperature(1, sr.he1st)
-                    if "he2st" in sr:
-                        Logger.log("i", "Was a extruder 2 termperature update")
-                        self._setHotendTemperature(2, sr.he2st)
-                    if "he2st" in sr:
-                        Logger.log("i", "Was a heat bed termperature update")
-                        self._setBedTemperature(sr.he2st)
-
-                    # TODO: temperature changed callback
-
-                    if "out1" in sr:
-                        # TODO: Handle mapping of output to axis
-                        self._setEndstopState("y_min", sr.out1)  # actually y_max
-                    if "out4" in sr:
-                        # TODO: Handle mapping of output to axis
-                        self._setEndstopState("x_min", sr.out4)
-                    if "out5" in sr:
-                        # TODO: Handle mapping of output to axis
-                        self._setEndstopState("z_min", sr.out5)
-
-                    if "line" in sr:
-                        self.setProgress((sr.line / len(self._gcode)) * 100)
-
-                    if "posz" in sr:
-                        self._current_z = sr.posz
-
                 if "r" in response:
-                    r = response.r
+                    r = response['r']
 
                     if not self._command_queue.empty():
                         self._sendCommand(self._command_queue.get())
                     elif not self._is_paused:
                         self._sendNextGcodeLine()
+
+                    if "sr" in r:
+                        sr = r['sr']
+
+                if "sr" in response:
+                    sr = response['sr']
+
+                if sr != None:
+                    if "he1st" in sr:
+                        Logger.log("i", "Was a extruder 1 termperature update")
+                        self._setHotendTemperature(1, sr['he1st'])
+                    if "he2st" in sr:
+                        Logger.log("i", "Was a extruder 2 termperature update")
+                        self._setHotendTemperature(2, sr['he2st'])
+                    if "he2st" in sr:
+                        Logger.log("i", "Was a heat bed termperature update")
+                        self._setBedTemperature(sr['he2st'])
+
+                    # TODO: temperature changed callback
+
+                    if "out1" in sr:
+                        # TODO: Handle mapping of output to axis
+                        self._setEndstopState("y_min", sr['out1'])  # actually y_max
+                    if "out4" in sr:
+                        # TODO: Handle mapping of output to axis
+                        self._setEndstopState("x_min", sr['out4'])
+                    if "out5" in sr:
+                        # TODO: Handle mapping of output to axis
+                        self._setEndstopState("z_min", sr['out5'])
+
+                    if "line" in sr:
+                        self.setProgress((sr['line'] / len(self._gcode)) * 100)
+
+                    if "posz" in sr:
+                        self._current_z = sr['posz']
+
             except json.JSONDecodeError as e:
                 Logger.log("i", "Decoding the json failed %s" % e)
 
