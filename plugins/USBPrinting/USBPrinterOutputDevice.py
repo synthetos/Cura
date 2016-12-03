@@ -653,43 +653,43 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
 
             try:
                 response = json.loads(line)
+
+                if "sr" in response:
+                    sr = response.sr
+                    if "he1st" in sr:
+                        self._setHotendTemperature(1, sr.he1st)
+                    if "he2st" in sr:
+                        self._setHotendTemperature(2, sr.he2st)
+                    if "he2st" in sr:
+                        self._setBedTemperature(sr.he2st)
+
+                    # TODO: temperature changed callback
+
+                    if "out1" in sr:
+                        # TODO: Handle mapping of output to axis
+                        self._setEndstopState("y_min", sr.out1)  # actually y_max
+                    if "out4" in sr:
+                        # TODO: Handle mapping of output to axis
+                        self._setEndstopState("x_min", sr.out4)
+                    if "out5" in sr:
+                        # TODO: Handle mapping of output to axis
+                        self._setEndstopState("z_min", sr.out5)
+
+                    if "line" in sr:
+                        self.setProgress((sr.line / len(self._gcode)) * 100)
+
+                    if "posz" in sr:
+                        self._current_z = sr.posz
+
+                if "r" in response:
+                    r = response.r
+
+                    if not self._command_queue.empty():
+                        self._sendCommand(self._command_queue.get())
+                    elif not self._is_paused:
+                        self._sendNextGcodeLine()
             except:
                 pass  # TODO: handle json parser errors
-
-            if "sr" in response:
-                sr = response.sr
-                if "he1st" in sr:
-                    self._setHotendTemperature(1, sr.he1st)
-                if "he2st" in sr:
-                    self._setHotendTemperature(2, sr.he2st)
-                if "he2st" in sr:
-                    self._setBedTemperature(sr.he2st)
-
-                # TODO: temperature changed callback
-
-                if "out1" in sr:
-                    # TODO: Handle mapping of output to axis
-                    self._setEndstopState("y_min", sr.out1)  # actually y_max
-                if "out4" in sr:
-                    # TODO: Handle mapping of output to axis
-                    self._setEndstopState("x_min", sr.out4)
-                if "out5" in sr:
-                    # TODO: Handle mapping of output to axis
-                    self._setEndstopState("z_min", sr.out5)
-
-                if "line" in sr:
-                    self.setProgress((sr.line / len(self._gcode)) * 100)
-
-                if "posz" in sr:
-                    self._current_z = sr.posz
-
-            if "r" in response:
-                r = response.r
-
-                if not self._command_queue.empty():
-                    self._sendCommand(self._command_queue.get())
-                elif not self._is_paused:
-                    self._sendNextGcodeLine()
 
         Logger.log("i", "Printer connection listen thread stopped for %s" % self._serial_port)
 
