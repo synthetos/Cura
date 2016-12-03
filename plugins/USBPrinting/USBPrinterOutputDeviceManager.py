@@ -42,7 +42,7 @@ class USBPrinterOutputDeviceManager(QObject, OutputDevicePlugin, Extension):
         self._firmware_view = None
 
         # TODO: remove this ugly Hack
-        self._connecting_to_a_g2 = false
+        self._connecting_to_a_g2 = False
 
         Application.getInstance().applicationShuttingDown.connect(self.stop)
         self.addUSBOutputDeviceSignal.connect(self.addOutputDevice) #Because the model needs to be created in the same thread as the QMLEngine, we use a signal.
