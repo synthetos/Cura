@@ -652,7 +652,7 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
             response = None
 
             try:
-                response = json.loads(line.encode())
+                response = json.loads(line.decode('utf-8'))
 
                 if "sr" in response or ("r" in response and "sr" in response.r):
                     Logger.log("i", "Was a status report")
