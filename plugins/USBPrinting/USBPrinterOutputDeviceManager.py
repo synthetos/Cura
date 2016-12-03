@@ -41,6 +41,9 @@ class USBPrinterOutputDeviceManager(QObject, OutputDevicePlugin, Extension):
         self._check_updates = True
         self._firmware_view = None
 
+        # TODO: remove this ugly Hack
+        self._connecting_to_a_g2 = false
+
         Application.getInstance().applicationShuttingDown.connect(self.stop)
         self.addUSBOutputDeviceSignal.connect(self.addOutputDevice) #Because the model needs to be created in the same thread as the QMLEngine, we use a signal.
 
@@ -226,7 +229,9 @@ class USBPrinterOutputDeviceManager(QObject, OutputDevicePlugin, Extension):
     def addOutputDevice(self, serial_port):
         device = USBPrinterOutputDevice.USBPrinterOutputDevice(serial_port)
         device.connectionStateChanged.connect(self._onConnectionStateChanged)
-        device.connect()
+        if not _connecting_to_a_g2:
+            device.connect()
+            _connecting_to_a_g2 = True
         device.progressChanged.connect(self.progressChanged)
         device.firmwareUpdateChange.connect(self.firmwareUpdateChange)
         self._usb_output_devices[serial_port] = device
