@@ -117,7 +117,7 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
     firmwareUpdateComplete = pyqtSignal()
     firmwareUpdateChange = pyqtSignal()
 
-    endstopStateChanged = pyqtSignal(str ,bool, arguments = ["key","state"])
+    endstopStateChanged = pyqtSignal(str, bool, arguments = ["key","state"])
 
     def _setTargetBedTemperature(self, temperature):
         Logger.log("d", "Setting bed temperature to %s", temperature)
@@ -406,7 +406,7 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
             if not self.setBaudRate(115200):
                 return  # Could not set the baud rate, go to the next
 
-        self._sendG2Command({"sr":None})  # Request a status report
+        self._sendG2Command({"sr": None})  # Request a status report
 
         line = self._readline()
         if line is None:
@@ -697,8 +697,8 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
                         self._sendCommand(self._command_queue.get())
                     elif not self._is_paused:
                         self._sendNextGcodeLine()
-            except:
-                pass  # TODO: handle json parser errors
+            except json.JSONDecodeError as e:
+                Logger.log("i", "Decoding the json failed %s" % e)
 
         Logger.log("i", "Printer connection listen thread stopped for %s" % self._serial_port)
 
