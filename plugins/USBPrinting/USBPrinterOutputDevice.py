@@ -654,13 +654,22 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
             try:
                 response = json.loads(line)
 
-                if "sr" in response:
-                    sr = response.sr
+                if "sr" in response or ("r" in response and "sr" in response.r):
+                    Logger.log("i", "Was a status report")
+                    sr = None
+                    if "sr" in response:
+                        sr = response.sr
+                    else:
+                        sr = response.r.sr
+
                     if "he1st" in sr:
+                        Logger.log("i", "Was a extruder 1 termperature update")
                         self._setHotendTemperature(1, sr.he1st)
                     if "he2st" in sr:
+                        Logger.log("i", "Was a extruder 2 termperature update")
                         self._setHotendTemperature(2, sr.he2st)
                     if "he2st" in sr:
+                        Logger.log("i", "Was a heat bed termperature update")
                         self._setBedTemperature(sr.he2st)
 
                     # TODO: temperature changed callback
