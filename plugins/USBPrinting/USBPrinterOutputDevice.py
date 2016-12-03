@@ -415,13 +415,15 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
             self.setConnectionState(ConnectionState.closed)
             return
 
-        if b"\"{\"sr\":" in line:
+        if b"\"{\"sr\":" in line or b"\"{\"r\":" in line:
             Logger.log("d", "Correct response for status report request received.")
             self._serial.timeout = 2 # Reset serial timeout
             self.setConnectionState(ConnectionState.connected)
             self._listen_thread.start()  # Start listening
             Logger.log("i", "Established printer connection on port %s" % self._serial_port)
             return
+
+        Logger.log("d", "Incorrect response for g2core: %s" % line)
 
         self.close()  # Unable to connect, wrap up.
         self.setConnectionState(ConnectionState.closed)
