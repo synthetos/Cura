@@ -415,7 +415,7 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
             self.setConnectionState(ConnectionState.closed)
             return
 
-        if b"\"{\"sr\":" in line or b"\"{\"r\":" in line:
+        if b"{\"r\":" in line:
             Logger.log("d", "Correct response for status report request received.")
             self._serial.timeout = 2 # Reset serial timeout
             self.setConnectionState(ConnectionState.connected)
