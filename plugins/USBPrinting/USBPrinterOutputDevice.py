@@ -559,7 +559,7 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
     ##  Listen thread function.
     def _listen(self):
         if self._device_type == USBPrinterOutputDeviceType.G2Core:
-                return self._listenG2(cmd)
+            return self._listenG2()
 
         Logger.log("i", "Printer connection listen thread started for %s" % self._serial_port)
         temperature_request_timeout = time.time()
