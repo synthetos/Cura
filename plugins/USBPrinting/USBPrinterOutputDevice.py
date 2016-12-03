@@ -3,11 +3,14 @@
 
 from .avr_isp import stk500v2, ispBase, intelHex
 import serial
+from serial.tools import list_ports
 import threading
 import time
 import queue
 import re
 import functools
+import json
+from enum import Enum
 
 from UM.Application import Application
 from UM.Logger import Logger
@@ -18,6 +21,12 @@ from PyQt5.QtCore import QUrl, pyqtSlot, pyqtSignal, pyqtProperty
 
 from UM.i18n import i18nCatalog
 catalog = i18nCatalog("cura")
+
+
+class USBPrinterOutputDeviceType(Enum):
+    Marlin = 1
+    G2Core = 2
+
 
 class USBPrinterOutputDevice(PrinterOutputDevice):
 
@@ -38,6 +47,14 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
 
         self._end_stop_thread = None
         self._poll_endstop = False
+
+        self._device_type = USBPrinterOutputDeviceType.Marlin
+
+        for port in list(list_ports.comports()):
+            if port.device == self._serial_port:
+                if port.vid == 0x1d50 and port.pid == 0x606d:
+                    self._device_type = USBPrinterOutputDeviceType.G2Core
+                    break
 
         # The baud checking is done by sending a number of m105 commands to the printer and waiting for a readable
         # response. If the baudrate is correct, this should make sense, else we get giberish.
@@ -100,29 +117,41 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
 
     def _setTargetBedTemperature(self, temperature):
         Logger.log("d", "Setting bed temperature to %s", temperature)
-        self._sendCommand("M140 S%s" % temperature)
+        if self._device_type == USBPrinterOutputDeviceType.Marlin:
+            self._sendCommand("M140 S%s" % temperature)
+        elif self._device_type == USBPrinterOutputDeviceType.G2Core:
+            self._sendCommand("M100 ({he3st:%s})" % temperature)
 
     def _setTargetHotendTemperature(self, index, temperature):
         Logger.log("d", "Setting hotend %s temperature to %s", index, temperature)
-        self._sendCommand("M104 T%s S%s" % (index, temperature))
+        if self._device_type == USBPrinterOutputDeviceType.Marlin:
+            self._sendCommand("M104 T%s S%s" % (index, temperature))
+        elif self._device_type == USBPrinterOutputDeviceType.G2Core:
+            self._sendCommand("M100 ({he%sst:%s})" % (index, temperature))
 
     def _setHeadPosition(self, x, y , z, speed):
-        self._sendCommand("G0 X%s Y%s Z%s F%s" % (x, y, z, speed))
+        self._sendCommand("G1 X%s Y%s Z%s F%s" % (x, y, z, speed))
 
     def _setHeadX(self, x, speed):
-        self._sendCommand("G0 X%s F%s" % (x, speed))
+        self._sendCommand("G1 X%s F%s" % (x, speed))
 
     def _setHeadY(self, y, speed):
-        self._sendCommand("G0 Y%s F%s" % (y, speed))
+        self._sendCommand("G1 Y%s F%s" % (y, speed))
 
     def _setHeadZ(self, z, speed):
-        self._sendCommand("G0 Y%s F%s" % (z, speed))
+        self._sendCommand("G1 Y%s F%s" % (z, speed))
 
     def _homeHead(self):
-        self._sendCommand("G28")
+        if self._device_type == USBPrinterOutputDeviceType.Marlin:
+            self._sendCommand("G28")
+        elif self._device_type == USBPrinterOutputDeviceType.G2Core:
+            self._sendCommand("G28.2 X0 Y0")
 
     def _homeBed(self):
-        self._sendCommand("G28 Z")
+        if self._device_type == USBPrinterOutputDeviceType.Marlin:
+            self._sendCommand("G28 Z")
+        elif self._device_type == USBPrinterOutputDeviceType.G2Core:
+            self._sendCommand("G28.2 Z0")
 
     def startPrint(self):
         self.writeStarted.emit(self)
@@ -132,7 +161,7 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
 
     def _moveHead(self, x, y, z, speed):
         self._sendCommand("G91")
-        self._sendCommand("G0 X%s Y%s Z%s F%s" % (x, y, z, speed))
+        self._sendCommand("G1 X%s Y%s Z%s F%s" % (x, y, z, speed))
         self._sendCommand("G90")
 
     ##  Start a print based on a g-code.
@@ -150,7 +179,8 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
             self._gcode.extend(layer.split("\n"))
 
         # Reset line number. If this is not done, first line is sometimes ignored
-        self._gcode.insert(0, "M110")
+        if self._device_type == USBPrinterOutputDeviceType.Marlin:
+            self._gcode.insert(0, "M110")
         self._gcode_position = 0
         self._print_start_time_100 = None
         self._is_printing = True
@@ -289,12 +319,16 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
         self._end_stop_thread = None
 
     def _pollEndStop(self):
-        while self._connection_state == ConnectionState.connected and self._poll_endstop:
-            self.sendCommand("M119")
+        if self._device_type == USBPrinterOutputDeviceType.Marlin:
+            while self._connection_state == ConnectionState.connected and self._poll_endstop:
+                self.sendCommand("M119")
             time.sleep(0.5)
 
     ##  Private connect function run by thread. Can be started by calling connect.
     def _connect(self):
+        if self._device_type == USBPrinterOutputDeviceType.G2Core:
+            return self._connect_g2core()
+
         Logger.log("d", "Attempting to connect to %s", self._serial_port)
         self.setConnectionState(ConnectionState.connecting)
         programmer = stk500v2.Stk500v2()
@@ -350,6 +384,44 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
         self.close()  # Unable to connect, wrap up.
         self.setConnectionState(ConnectionState.closed)
 
+    ##  Private connect function to connect to a g2core machine.
+    def _connect_g2core(self):
+        if self._device_type != USBPrinterOutputDeviceType.G2Core:
+            Logger.log("i", "Could not establish connection on %s. Device is not g2core based." % (self._serial_port))
+
+        Logger.log("d", "Attempting to connect to %s", self._serial_port)
+        self.setConnectionState(ConnectionState.connecting)
+
+        if self._serial is None:
+            try:
+                self._serial = serial.Serial(str(self._serial_port), 115200, rtscts = True, timeout = 3, writeTimeout = 10000)
+            except serial.SerialException:
+                Logger.log("d", "Could not open port %s" % self._serial_port)
+                continue
+        else:
+            if not self.setBaudRate(115200):
+                continue  # Could not set the baud rate, go to the next
+
+        self._sendG2Command({"sr":None})  # Request a status report
+
+        line = self._readline()
+        if line is None:
+            Logger.log("d", "No response from serial connection received.")
+            # Something went wrong with reading, could be that close was called.
+            self.setConnectionState(ConnectionState.closed)
+            return
+
+        if b"\"{\"sr\":" in line:
+            Logger.log("d", "Correct response for status report request received.")
+            self._serial.timeout = 2 # Reset serial timeout
+            self.setConnectionState(ConnectionState.connected)
+            self._listen_thread.start()  # Start listening
+            Logger.log("i", "Established printer connection on port %s" % self._serial_port)
+            return
+
+        self.close()  # Unable to connect, wrap up.
+        self.setConnectionState(ConnectionState.closed)
+
     ##  Set the baud rate of the serial. This can cause exceptions, but we simply want to ignore those.
     def setBaudRate(self, baud_rate):
         try:
@@ -386,6 +458,9 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
     ##  Directly send the command, withouth checking connection state (eg; printing).
     #   \param cmd string with g-code
     def _sendCommand(self, cmd):
+        if self._device_type == USBPrinterOutputDeviceType.G2Core:
+                return self._sendG2Command(cmd)
+
         if self._serial is None:
             return
 
@@ -407,6 +482,30 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
                 self.close()
         except Exception as e:
             Logger.log("e","Unexpected error while writing serial port %s" % e)
+            self._setErrorState("Unexpected error while writing serial port %s " % e)
+            self.close()
+
+    ##  Directly send the command to a g2core machine
+    #   \param cmd string with g-code or JSON
+    def _sendG2Command(self, cmd):
+        if self._serial is None:
+            return
+
+        if isinstance(cmd, dict) and ("he1st" in cmd or "he2st" in cmd or "he3st" in cmd):
+            self._heatup_wait_start_time = time.time()
+
+        try:
+            if isinstance(cmd, dict):
+                command = (json.dumps(cmd, ensure_ascii=True, indent=None, separators=(',', ':'))+"\n").encode()
+            else:
+                command = (cmd + "\n").encode()
+            self._serial.write(command)
+        except serial.SerialTimeoutException:
+            Logger.log("w", "Serial timeout while writing to serial port")
+            self._setErrorState("Serial timeout while writing serial port %s " % e)
+            self.close()
+        except Exception as e:
+            Logger.log("e", "Unexpected error while writing serial port %s" % e)
             self._setErrorState("Unexpected error while writing serial port %s " % e)
             self.close()
 
@@ -437,6 +536,7 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
         self.startPrint()
 
     def _setEndstopState(self, endstop_key, value):
+        # TODO: update with g2core handling
         if endstop_key == b"x_min":
             if self._x_min_endstop_pressed != value:
                 self.endstopStateChanged.emit("x_min", value)
@@ -452,6 +552,9 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
 
     ##  Listen thread function.
     def _listen(self):
+        if self._device_type == USBPrinterOutputDeviceType.G2Core:
+                return self._listenG2(cmd)
+
         Logger.log("i", "Printer connection listen thread started for %s" % self._serial_port)
         temperature_request_timeout = time.time()
         ok_timeout = time.time()
@@ -525,6 +628,61 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
 
         Logger.log("i", "Printer connection listen thread stopped for %s" % self._serial_port)
 
+    ##  Listen thread function for a g2core machine.
+    def _listenG2(self):
+        Logger.log("i", "Printer connection listen thread started for g2core machine %s" % self._serial_port)
+
+        while self._connection_state == ConnectionState.connected:
+            line = self._readline()
+            if line is None:
+                break  # None is only returned when something went wrong. Stop listening
+
+            # TODO: report errors
+            # if not self.hasError():
+            #     self._setErrorState(line[6:])
+
+            try:
+                response = json.loads(line)
+            except:
+                pass # TODO: handle json parser errors
+
+            if "sr" in resonse:
+                sr = response.sr
+                if "he1st" in sr:
+                    self._setHotendTemperature(1, sr.he1st)
+                if "he2st" in sr:
+                    self._setHotendTemperature(2, sr.he2st)
+                if "he2st" in sr:
+                    self._setBedTemperature(sr.he2st)
+
+                # TODO: temperature changed callback
+
+                if "out1" in sr:
+                    # TODO: Handle mapping of output to axis
+                    self._setEndstopState("y_min", sr.out1) # actually y_max
+                if "out4" in sr:
+                    # TODO: Handle mapping of output to axis
+                    self._setEndstopState("x_min", sr.out4)
+                if "out5" in sr:
+                    # TODO: Handle mapping of output to axis
+                    self._setEndstopState("z_min", sr.out5)
+
+                if "line" in sr:
+                    self.setProgress((sr.line / len(self._gcode)) * 100)
+
+                if "posz" in sr:
+                    self._current_z = sr.posz
+
+            if "r" in response:
+                r = response.r
+
+                if not self._command_queue.empty():
+                    self._sendCommand(self._command_queue.get())
+                elif not self._is_paused:
+                    self._sendNextGcodeLine()
+
+        Logger.log("i", "Printer connection listen thread stopped for %s" % self._serial_port)
+
     ##  Send next Gcode in the gcode list
     def _sendNextGcodeLine(self):
         if self._gcode_position >= len(self._gcode):
@@ -536,30 +694,35 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
         if ";" in line:
             line = line[:line.find(";")]
         line = line.strip()
-        try:
-            if line == "M0" or line == "M1":
+
+        if self._device_type == USBPrinterOutputDeviceType.Marlin:
+            if (line == "M0" or line == "M1"):
                 line = "M105"  # Don't send the M0 or M1 to the machine, as M0 and M1 are handled as an LCD menu pause.
             if ("G0" in line or "G1" in line) and "Z" in line:
                 z = float(re.search("Z([0-9\.]*)", line).group(1))
                 if self._current_z != z:
                     self._current_z = z
-        except Exception as e:
-            Logger.log("e", "Unexpected error with printer connection: %s" % e)
-            self._setErrorState("Unexpected error: %s" %e)
-        checksum = functools.reduce(lambda x,y: x^y, map(ord, "N%d%s" % (self._gcode_position, line)))
 
-        self._sendCommand("N%d%s*%d" % (self._gcode_position, line, checksum))
+        if self._device_type == USBPrinterOutputDeviceType.Marlin:
+            checksum = functools.reduce(lambda x,y: x^y, map(ord, "N%d%s" % (self._gcode_position, line)))
+            self._sendCommand("N%d%s*%d" % (self._gcode_position, line, checksum))
+        elif self._device_type == USBPrinterOutputDeviceType.G2Core:
+            self._sendG2Command("N%d%s" % (self._gcode_position, line))
         self._gcode_position += 1
-        self.setProgress((self._gcode_position / len(self._gcode)) * 100)
         self.progressChanged.emit()
 
     ##  Set the state of the print.
     #   Sent from the print monitor
     def _setJobState(self, job_state):
         if job_state == "pause":
+            if self._device_type == USBPrinterOutputDeviceType.G2Core and not self._is_paused:
+                self.sendCommand("!\n")
             self._is_paused = True
             self._updateJobState("paused")
         elif job_state == "print":
+            if self._device_type == USBPrinterOutputDeviceType.G2Core and self._is_paused:
+                self.sendCommand("~\n")
+
             self._is_paused = False
             self._updateJobState("printing")
         elif job_state == "abort":
@@ -585,10 +748,19 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
         self._gcode = []
 
         # Turn off temperatures, fan and steppers
-        self._sendCommand("M140 S0")
-        self._sendCommand("M104 S0")
-        self._sendCommand("M107")
-        self._sendCommand("M84")
+        if self._device_type == USBPrinterOutputDeviceType.Marlin:
+            self._sendCommand("M140 S0")
+            self._sendCommand("M104 S0")
+            self._sendCommand("M107")
+            self._sendCommand("M84")
+        elif self._device_type == USBPrinterOutputDeviceType.G2Core:
+            if not self._is_paused:
+                self.sendCommand("!\n")
+            self.sendCommand("%\n")
+            self.sendCommand({"out4": 0})
+            self.sendCommand({"he1st": 0})
+            self.sendCommand({"he2st": 0})
+            self.sendCommand({"he3st": 0})
         self._is_printing = False
         self._is_paused = False
         self._updateJobState("ready")
