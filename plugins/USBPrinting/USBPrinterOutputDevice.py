@@ -654,14 +654,15 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
             try:
                 response = json.loads(line.decode('utf-8'))
 
-                if "sr" in response or ("r" in response and "sr" in response.r):
-                    Logger.log("i", "Was a status report")
-                    sr = None
-                    if "sr" in response:
-                        sr = response.sr
-                    else:
+                sr = None
+
+                if "sr" in response:
+                    sr = response.sr
+                elif "r" in response:
+                    if "sr" in response.r:
                         sr = response.r.sr
 
+                if sr != None:
                     if "he1st" in sr:
                         Logger.log("i", "Was a extruder 1 termperature update")
                         self._setHotendTemperature(1, sr.he1st)
