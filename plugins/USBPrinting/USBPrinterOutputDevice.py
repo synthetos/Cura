@@ -417,7 +417,7 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
 
         if b"{\"r\":" in line:
             Logger.log("d", "Correct response for status report request received.")
-            self._serial.timeout = 2 # Reset serial timeout
+            self._serial.timeout = None  # Reset serial timeout to "wait forever"
             self.setConnectionState(ConnectionState.connected)
             self._listen_thread.start()  # Start listening
             Logger.log("i", "Established printer connection on port %s" % self._serial_port)
