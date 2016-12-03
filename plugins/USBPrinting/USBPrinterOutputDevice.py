@@ -58,7 +58,7 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
         #             break
 
         # TODO: So we hardwire that it's a g2 core machine, for now
-        self._device_type = USBPrinterOutputDeviceType.G2Core
+        # self._device_type = USBPrinterOutputDeviceType.G2Core
 
         # The baud checking is done by sending a number of m105 commands to the printer and waiting for a readable
         # response. If the baudrate is correct, this should make sense, else we get giberish.
@@ -335,54 +335,66 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
 
         Logger.log("d", "Attempting to connect to %s", self._serial_port)
         self.setConnectionState(ConnectionState.connecting)
-        programmer = stk500v2.Stk500v2()
+        # programmer = stk500v2.Stk500v2()
+        # try:
+        #     programmer.connect(self._serial_port) # Connect with the serial, if this succeeds, it's an arduino based usb device.
+        #     self._serial = programmer.leaveISP()
+        # except ispBase.IspError as e:
+        #     Logger.log("i", "Could not establish connection on %s: %s. Device is not arduino based." %(self._serial_port,str(e)))
+        # except Exception as e:
+        #     Logger.log("i", "Could not establish connection on %s, unknown reasons.  Device is not arduino based." % self._serial_port)
+        #
+        # # If the programmer connected, we know its an atmega based version.
+        # # Not all that useful, but it does give some debugging information.
+        # for baud_rate in self._getBaudrateList(): # Cycle all baud rates (auto detect)
+        #     Logger.log("d", "Attempting to connect to printer with serial %s on baud rate %s", self._serial_port, baud_rate)
+        #     if self._serial is None:
+        #         try:
+        #             self._serial = serial.Serial(str(self._serial_port), baud_rate, timeout = 3, writeTimeout = 10000)
+        #         except serial.SerialException:
+        #             Logger.log("d", "Could not open port %s" % self._serial_port)
+        #             continue
+        #     else:
+        #         if not self.setBaudRate(baud_rate):
+        #             continue  # Could not set the baud rate, go to the next
+        #
+        #     time.sleep(1.5) # Ensure that we are not talking to the bootloader. 1.5 seconds seems to be the magic number
+        #     sucesfull_responses = 0
+        #     timeout_time = time.time() + 5
+        #     self._serial.write(b"\n")
+        #     self._sendCommand("M105")  # Request temperature, as this should (if baudrate is correct) result in a command with "T:" in it
+        #     while timeout_time > time.time():
+        #         line = self._readline()
+        #         if line is None:
+        #             Logger.log("d", "No response from serial connection received.")
+        #             # Something went wrong with reading, could be that close was called.
+        #             self.setConnectionState(ConnectionState.closed)
+        #             return
+        #
+        #         if b"T:" in line:
+        #             Logger.log("d", "Correct response for auto-baudrate detection received.")
+        #             self._serial.timeout = 0.5
+        #             sucesfull_responses += 1
+        #             if sucesfull_responses >= self._required_responses_auto_baud:
+        #                 self._serial.timeout = 2 # Reset serial timeout
+        #                 self.setConnectionState(ConnectionState.connected)
+        #                 self._listen_thread.start()  # Start listening
+        #                 Logger.log("i", "Established printer connection on port %s" % self._serial_port)
+        #                 return
+        #
+        #         self._sendCommand("M105")  # Send M105 as long as we are listening, otherwise we end up in an undefined state
+
         try:
-            programmer.connect(self._serial_port) # Connect with the serial, if this succeeds, it's an arduino based usb device.
-            self._serial = programmer.leaveISP()
-        except ispBase.IspError as e:
-            Logger.log("i", "Could not establish connection on %s: %s. Device is not arduino based." %(self._serial_port,str(e)))
-        except Exception as e:
-            Logger.log("i", "Could not establish connection on %s, unknown reasons.  Device is not arduino based." % self._serial_port)
+            self._serial = serial.Serial(str(self._serial_port), 115200, timeout = 3, writeTimeout = 10000)
+            self._serial.timeout = 2 # Reset serial timeout
+            self.setConnectionState(ConnectionState.connected)
+            self._listen_thread.start()  # Start listening
+            Logger.log("i", "Established printer connection on port %s" % self._serial_port)
+            return
 
-        # If the programmer connected, we know its an atmega based version.
-        # Not all that useful, but it does give some debugging information.
-        for baud_rate in self._getBaudrateList(): # Cycle all baud rates (auto detect)
-            Logger.log("d", "Attempting to connect to printer with serial %s on baud rate %s", self._serial_port, baud_rate)
-            if self._serial is None:
-                try:
-                    self._serial = serial.Serial(str(self._serial_port), baud_rate, timeout = 3, writeTimeout = 10000)
-                except serial.SerialException:
-                    Logger.log("d", "Could not open port %s" % self._serial_port)
-                    continue
-            else:
-                if not self.setBaudRate(baud_rate):
-                    continue  # Could not set the baud rate, go to the next
+        except serial.SerialException:
+            Logger.log("d", "Could not open port %s" % self._serial_port)
 
-            time.sleep(1.5) # Ensure that we are not talking to the bootloader. 1.5 seconds seems to be the magic number
-            sucesfull_responses = 0
-            timeout_time = time.time() + 5
-            self._serial.write(b"\n")
-            self._sendCommand("M105")  # Request temperature, as this should (if baudrate is correct) result in a command with "T:" in it
-            while timeout_time > time.time():
-                line = self._readline()
-                if line is None:
-                    Logger.log("d", "No response from serial connection received.")
-                    # Something went wrong with reading, could be that close was called.
-                    self.setConnectionState(ConnectionState.closed)
-                    return
-
-                if b"T:" in line:
-                    Logger.log("d", "Correct response for auto-baudrate detection received.")
-                    self._serial.timeout = 0.5
-                    sucesfull_responses += 1
-                    if sucesfull_responses >= self._required_responses_auto_baud:
-                        self._serial.timeout = 2 # Reset serial timeout
-                        self.setConnectionState(ConnectionState.connected)
-                        self._listen_thread.start()  # Start listening
-                        Logger.log("i", "Established printer connection on port %s" % self._serial_port)
-                        return
-
-                self._sendCommand("M105")  # Send M105 as long as we are listening, otherwise we end up in an undefined state
 
         Logger.log("e", "Baud rate detection for %s failed", self._serial_port)
         self.close()  # Unable to connect, wrap up.
