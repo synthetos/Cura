@@ -330,8 +330,34 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
 
     ##  Private connect function run by thread. Can be started by calling connect.
     def _connect(self):
-        if self._device_type == USBPrinterOutputDeviceType.G2Core:
-            return self._connect_g2core()
+        # G2Core will always open at 115200, and spit out a line
+        # in the form {"r":{...}, f:[...]}. So we try to see if that's it first.
+        Logger.log("d", "Attempting to connect to printer with serial %s on baud rate %s", self._serial_port, 115200)
+        if self._serial is None:
+            try:
+                self._serial = serial.Serial(str(self._serial_port), 115200, rtscts = True, timeout = 3, writeTimeout = 10000)
+            except serial.SerialException:
+                Logger.log("d", "Could not open port %s" % self._serial_port)
+                return
+        else:
+            if not self.setBaudRate(115200):
+                return  # Could not set the baud rate, go to the next
+
+        line = self._readline()
+        if line is None:
+            Logger.log("d", "No response from serial connection received.")
+            # Something went wrong with reading, could be that close was called.
+            self.setConnectionState(ConnectionState.closed)
+        else:
+            if b"{\"r\":" in line:
+                self._device_type == USBPrinterOutputDeviceType.G2Core
+                Logger.log("d", "Correct response for g2core device received.")
+                self._serial.timeout = None  # Reset serial timeout to "wait forever"
+                self.setConnectionState(ConnectionState.connected)
+                self._listen_thread.start()  # Start listening
+                Logger.log("i", "Established printer connection on port %s" % self._serial_port)
+                return
+
 
         Logger.log("d", "Attempting to connect to %s", self._serial_port)
         self.setConnectionState(ConnectionState.connecting)
@@ -385,46 +411,6 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
                 self._sendCommand("M105")  # Send M105 as long as we are listening, otherwise we end up in an undefined state
 
         Logger.log("e", "Baud rate detection for %s failed", self._serial_port)
-        self.close()  # Unable to connect, wrap up.
-        self.setConnectionState(ConnectionState.closed)
-
-    ##  Private connect function to connect to a g2core machine.
-    def _connect_g2core(self):
-        if self._device_type != USBPrinterOutputDeviceType.G2Core:
-            Logger.log("i", "Could not establish connection on %s. Device is not g2core based." % (self._serial_port))
-
-        Logger.log("d", "Attempting to connect to %s", self._serial_port)
-        self.setConnectionState(ConnectionState.connecting)
-
-        if self._serial is None:
-            try:
-                self._serial = serial.Serial(str(self._serial_port), 115200, rtscts = True, timeout = 3, writeTimeout = 10000)
-            except serial.SerialException:
-                Logger.log("d", "Could not open port %s" % self._serial_port)
-                return
-        else:
-            if not self.setBaudRate(115200):
-                return  # Could not set the baud rate, go to the next
-
-        self._sendG2Command({"sr": None})  # Request a status report
-
-        line = self._readline()
-        if line is None:
-            Logger.log("d", "No response from serial connection received.")
-            # Something went wrong with reading, could be that close was called.
-            self.setConnectionState(ConnectionState.closed)
-            return
-
-        if b"{\"r\":" in line:
-            Logger.log("d", "Correct response for status report request received.")
-            self._serial.timeout = None  # Reset serial timeout to "wait forever"
-            self.setConnectionState(ConnectionState.connected)
-            self._listen_thread.start()  # Start listening
-            Logger.log("i", "Established printer connection on port %s" % self._serial_port)
-            return
-
-        Logger.log("d", "Incorrect response for g2core: %s" % line)
-
         self.close()  # Unable to connect, wrap up.
         self.setConnectionState(ConnectionState.closed)
 
