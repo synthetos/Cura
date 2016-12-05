@@ -33,7 +33,7 @@
             ]
         },
         "gantry_height": { "default_value": 99999 },
-        "machine_gcode_flavor": { "default_value": "G2CorePre" },
+        "machine_gcode_flavor": { "default_value": "G2Core-0.9" },
         "material_print_temp_prepend": { "default_value": false },
 
         "machine_start_gcode": {
